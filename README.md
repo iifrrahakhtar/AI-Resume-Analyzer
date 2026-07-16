@@ -2,7 +2,7 @@
 
 An interactive AI-powered web application designed to help job seekers optimize their resumes for Applicant Tracking Systems (ATS). This tool extracts text from a PDF resume, uses Natural Language Processing (NLP) to parse technical skills, and matches them against a target job description to calculate an overall compatibility score.
 
-🚀 **[Live App Demo Link](YOUR_STREAMLIT_APP_URL_HERE)**
+🚀 **[Live App Demo Link](https://ai-resume-analyzer-dzlejjgncprhhgved8fu3d.streamlit.app/)**
 
 ---
 
