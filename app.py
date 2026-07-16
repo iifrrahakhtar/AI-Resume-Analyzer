@@ -1,15 +1,7 @@
 import streamlit as st
 import pdfplumber
-import spacy
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-
-# Load spaCy model
-@st.cache_resource
-def load_nlp():
-    return spacy.load("en_core_web_sm")
-
-nlp = load_nlp()
 
 # 1. Function to extract text from PDF
 def extract_text_from_pdf(pdf_file):
@@ -21,10 +13,8 @@ def extract_text_from_pdf(pdf_file):
                 text += page_text + "\n"
     return text
 
-# 2. Basic NLP Skill Matcher
+# 2. Simple & Robust Skill Matcher (No spaCy needed!)
 def extract_skills(text):
-    doc = nlp(text.lower())
-    # Define a default set of skills across common tech profiles (expandable)
     skills_database = {
         "python", "java", "c++", "javascript", "typescript", "html", "css", "react", 
         "node.js", "express", "sql", "postgresql", "mongodb", "aws", "docker", "kubernetes", 
@@ -32,30 +22,23 @@ def extract_skills(text):
         "powerbi", "machine learning", "deep learning", "data analysis", "nlp", "flask", "django"
     }
     
+    text_lower = text.lower()
     found_skills = set()
-    # Check for exact matches and common bi-grams
-    for token in doc:
-        if token.text in skills_database:
-            found_skills.add(token.text)
-            
-    # Simple multi-word skill matching (like "machine learning")
+    
+    # Check for both single words and multi-word skills safely
     for skill in skills_database:
-        if len(skill.split()) > 1 and skill in text.lower():
+        if skill in text_lower:
             found_skills.add(skill)
             
     return found_skills
 
 # 3. Calculate ATS Score (Cosine Similarity)
 def calculate_ats_score(resume_text, job_description):
-    # Vectorize the documents to find overall keyword similarity
     text_list = [resume_text, job_description]
     cv = CountVectorizer()
     count_matrix = cv.fit_transform(text_list)
     similarity_matrix = cosine_similarity(count_matrix)
-    
-    # Cosine similarity score mapped to percentage
-    match_percentage = round(similarity_matrix[0][1] * 100, 2)
-    return match_percentage
+    return round(similarity_matrix[0][1] * 100, 2)
 
 # --- Streamlit UI ---
 st.set_page_config(page_title="AI Resume Analyzer", layout="centered")
@@ -63,31 +46,23 @@ st.set_page_config(page_title="AI Resume Analyzer", layout="centered")
 st.title("📄 AI Resume Analyzer")
 st.subheader("Match your resume against a target job description!")
 
-# Job Description Input
 job_desc = st.text_area("🎯 Paste the Job Description here:", height=200)
-
-# Resume File Upload
 uploaded_file = st.file_uploader("📂 Upload your Resume (PDF format)", type=["pdf"])
 
 if uploaded_file and job_desc:
     with st.spinner("Analyzing resume..."):
-        # Process inputs
         resume_text = extract_text_from_pdf(uploaded_file)
         
-        # Skill extraction
         resume_skills = extract_skills(resume_text)
         job_skills = extract_skills(job_desc)
         
-        # Analysis calculations
         score = calculate_ats_score(resume_text, job_desc)
         missing_skills = job_skills - resume_skills
         matching_skills = job_skills.intersection(resume_skills)
         
-        # Display Results
         st.success("Analysis Complete!")
-        
-        # 1. ATS Score Visualization
         st.metric(label="📊 Overall ATS Match Score", value=f"{score}%")
+        
         if score < 50:
             st.warning("⚠️ High Risk: Your resume matches less than 50% of the job description context.")
         elif score < 75:
@@ -95,9 +70,7 @@ if uploaded_file and job_desc:
         else:
             st.success("🎉 Excellent Match! Ready for submission.")
             
-        # 2. Key Findings
         col1, col2 = st.columns(2)
-        
         with col1:
             st.markdown("### ✅ Matching Skills Found")
             if matching_skills:
@@ -114,7 +87,6 @@ if uploaded_file and job_desc:
             else:
                 st.write("Excellent! No major skills are missing.")
 
-        # 3. Actionable Improvements
         st.markdown("---")
         st.markdown("### 💡 Recommended Improvements")
         
@@ -131,6 +103,5 @@ if uploaded_file and job_desc:
                 st.info(imp)
         else:
             st.success("Your resume formatting and content structure look solid!")
-            
 else:
     st.info("💡 Please paste a job description and upload your resume PDF to begin.")
